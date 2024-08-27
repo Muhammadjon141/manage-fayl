@@ -21,8 +21,8 @@ class RegisterModel(BaseModel):
         }
 
 class LoginModel(BaseModel):
-    username: str
-    password: str
+    username: Optional[str]
+    password: Optional[str]
 
     class Config:
         orm_mode = True
@@ -30,3 +30,19 @@ class LoginModel(BaseModel):
             "username": "admin",
             "password": "7982",
         }
+        
+class ProductListModel(BaseModel):
+    name: Optional[str]
+    price: Optional[int]
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "name": "banan",
+            "price": 15,
+        }
+
+class OrderListModel(BaseModel):
+    pass
+
+class UserOrdersListModel(BaseModel):
+    id: Optional[int]

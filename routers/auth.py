@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 from database import Session, ENGINE
-from models import User
-from schemas import RegisterModel, LoginModel
+from models import User, Order
+from schemas import RegisterModel, LoginModel, UserOrdersListModel
 from fastapi.exceptions import HTTPException
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -10,8 +10,11 @@ session = Session(bind=ENGINE)
 router = APIRouter()
 
 @router.get("/")
-async def auth_page():
-    return {"message": "Auth page"}
+async def auth_page(id: UserOrdersListModel):
+    db_order = session.query(Order).filter(Order.user_id == id).first()
+    if db_order is not None:
+        return HTTPException(status_code=status.HTTP_200_OK, detail=f"{db_order}")
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="orders not found")
 
 @router.get("/login")
 async def login_page():
