@@ -19,6 +19,7 @@ class RegisterModel(BaseModel):
                 "is_staff": False,
                 "is_active": True
         }
+    
 
 class LoginModel(BaseModel):
     username: Optional[str]
@@ -41,8 +42,28 @@ class ProductListModel(BaseModel):
             "price": 15,
         }
 
+class ProductModel(BaseModel):
+    name: Optional[str]
+    price: Optional[int]
+    class Config:
+        orm_mode = True
+        schema_extra = {
+            "name": "banan",
+            "price": 15,
+        }
+
 class OrderListModel(BaseModel):
-    pass
+    id: Optional[int]
+    quantity: Optional[int]
+    order_status: Optional[str]
+    user_id: Optional[int]
+    product_id: Optional[int]
+    # class Config:
+    #     orm_mode = True
+    #     schema_extra = {
+    #         "name": "banan",
+    #         "price": 15,
+    #     }
 
 class UserOrdersListModel(BaseModel):
     id: Optional[int]

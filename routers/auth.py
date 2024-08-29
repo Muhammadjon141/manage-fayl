@@ -1,8 +1,9 @@
 from fastapi import APIRouter, status
 from database import Session, ENGINE
 from models import User, Order
-from schemas import RegisterModel, LoginModel, UserOrdersListModel
 from fastapi.exceptions import HTTPException
+from fastapi.encoders import jsonable_encoder
+from schemas import RegisterModel, LoginModel, UserOrdersListModel
 from werkzeug.security import generate_password_hash, check_password_hash
 
 session = Session(bind=ENGINE)
@@ -50,9 +51,20 @@ async def create_user(user: RegisterModel):
     )
     session.add(new_user)
     session.commit()
-    return new_user
+    return HTTPException(status_code=status.HTTP_201_CREATED, detail=f"{new_user}")
 
 @router.get("/users")
 async def get_users():
     users = session.query(User).all()
     return users
+
+@router.get("/{id}")
+async def get_user(id: int):
+    user = session.query(User).filter(User.id==id).first()
+    if user is None:
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user_info={
+        "username":user.username,
+        "password":user.password
+        }
+    return HTTPException(status_code=status.HTTP_200_OK, detail=f"{user_info}")
