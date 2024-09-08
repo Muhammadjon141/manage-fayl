@@ -1,51 +1,105 @@
 from database import Base
-from sqlalchemy import Column, Integer, Boolean, Text, String, ForeignKey
+from sqlalchemy import Column, String, DateTime, ForeignKey, BigInteger, Boolean, Text, func
 from sqlalchemy.orm import relationship
-from sqlalchemy_utils.types import ChoiceType
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 class User(Base):
     __tablename__ = 'user'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    first_name = Column(String)
+    last_name = Column(String)
+    username = Column(String(50), unique=True, nullable=False)
+    email = Column(String(50), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
-    id = Column(Integer, primary_key=True)
-    username = Column(String(50), unique=True)
-    email = Column(String(50), unique=True)
-    password = Column(Text, nullable=False)
-    is_staff = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
-    orders = relationship('Order', back_populates='user')
+    post = relationship('Post', back_populates='user')
+    comments = relationship('Comments', back_populates='user')
+    likes = relationship('Likes', back_populates='user')
+    follower_user = relationship('Followers', foreign_keys='[Followers.follower_id]', back_populates='follower')
+    following_user = relationship('Followers', foreign_keys='[Followers.following_id]', back_populates='following')
+    sent_messages = relationship('Messages', foreign_keys='[Messages.sender_id]', back_populates='sender')
+    received_messages = relationship('Messages', foreign_keys='[Messages.receiver_id]', back_populates='receiver')
 
-    def __repr__(self):
-        return f"User {self.username}"
+class Post(Base):
+    __tablename__ = 'post'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    image_path = Column(String(255), nullable=True)
+    caption = Column(String(255), nullable=True)
+    review = Column(BigInteger, default=0)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
-class Order(Base):
-    OrderChoice = (
-        ('PENDING', 'Pending'),
-        ('IN_TRANSIT', 'In Transit'),
-        ('COMPLETED', 'Completed')
-    )
+    user = relationship('User', back_populates='post')
+    comments = relationship('Comments', back_populates='post', cascade="all, delete-orphan")
+    like = relationship('Likes', back_populates='post', cascade="all, delete-orphan")
+    post_tags = relationship('PostTags', back_populates='post')
 
-    __tablename__ = 'orders'
-    
-    id = Column(Integer, primary_key=True)
-    quantity = Column(Integer, nullable=False)
-    order_status = Column(ChoiceType(choices=OrderChoice), default="PENDING")
-    user_id = Column(Integer, ForeignKey('user.id'))
-    product_id = Column(Integer, ForeignKey('product.id'))
+class Comments(Base):
+    __tablename__ = 'comment'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    post_id = Column(UUID(as_uuid=True), ForeignKey('post.id'), nullable=False)
+    content = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
-    user = relationship('User', back_populates='orders')
-    product = relationship('Product', back_populates='orders')
+    user = relationship('User', back_populates='comments')
+    post = relationship('Post', back_populates='comments')
 
-    def __repr__(self):
-        return f"Order {self.id}"
+class Likes(Base):
+    __tablename__ = 'like'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    post_id = Column(UUID(as_uuid=True), ForeignKey('post.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
-class Product(Base):
-    __tablename__ = 'product'
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50))
-    price = Column(Integer)
+    user = relationship('User', back_populates='likes')
+    post = relationship('Post', back_populates='like')
 
-    orders = relationship('Order', back_populates='product')
+class Followers(Base):
+    __tablename__ = 'followers'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    follower_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    following_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
-    def __repr__(self):
-        return f"Product {self.name}"
+    follower = relationship('User', foreign_keys=[follower_id], back_populates='follower_user')
+    following = relationship('User', foreign_keys=[following_id], back_populates='following_user')
+
+class Tags(Base):
+    __tablename__ = 'tags'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+
+    post_tags = relationship('PostTags', back_populates='tags')
+
+class PostTags(Base):
+    __tablename__ = 'post_tags'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    post_id = Column(UUID(as_uuid=True), ForeignKey('post.id'), nullable=False)
+    tag_id = Column(UUID(as_uuid=True), ForeignKey('tags.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+
+    post = relationship('Post', back_populates='post_tags')
+    tags = relationship('Tags', back_populates='post_tags')
+
+class Messages(Base):
+    __tablename__ = 'messages'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sender_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    receiver_id = Column(UUID(as_uuid=True), ForeignKey('user.id'), nullable=False)
+    message_text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    is_read = Column(Boolean, default=False)
+
+    sender = relationship('User', foreign_keys=[sender_id], back_populates='sent_messages')
+    receiver = relationship('User', foreign_keys=[receiver_id], back_populates='received_messages') 

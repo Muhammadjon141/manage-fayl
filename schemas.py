@@ -1,69 +1,18 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, validator, EmailStr
+from typing import Optional
 
-class RegisterModel(BaseModel):
-    id: Optional[int]
-    username: str
-    email: str
-    password: str
-    is_staff: Optional[bool]
-    is_active: Optional[bool]
-
-    class Config:
-        orm_mode = True
-        schema_extra = {
-                "id": 1,
-                "username": "admin",
-                "email": "admin@gmail.com",
-                "password": "7982",
-                "is_staff": False,
-                "is_active": True
-        }
-    
-
-class LoginModel(BaseModel):
+class UserRegister(BaseModel):
     username: Optional[str]
     password: Optional[str]
+    email: Optional[str]
 
-    class Config:
-        orm_mode = True
-        schema_extra = {
-            "username": "admin",
-            "password": "7982",
-        }
-        
-class ProductListModel(BaseModel):
-    name: Optional[str]
-    price: Optional[int]
-    class Config:
-        orm_mode = True
-        schema_extra = {
-            "name": "banan",
-            "price": 15,
-        }
+class Settings(BaseModel):
+    authjwt_secret_key: str = "bdddcbea774c82aa8d9a83e21c5297e2f5ca28123baaaf179cf42d83ef1795b3"
 
-class ProductModel(BaseModel):
-    name: Optional[str]
-    price: Optional[int]
-    class Config:
-        orm_mode = True
-        schema_extra = {
-            "name": "banan",
-            "price": 15,
-        }
+class UserLogin(BaseModel):
+    username_or_email: Optional[str]
+    password: Optional[str]
 
-class OrderListModel(BaseModel):
-    id: Optional[int]
-    quantity: Optional[int]
-    order_status: Optional[str]
-    user_id: Optional[int]
-    product_id: Optional[int]
-    # class Config:
-    #     orm_mode = True
-    #     schema_extra = {
-    #         "name": "banan",
-    #         "price": 15,
-    #     }
-
-class UserOrdersListModel(BaseModel):
-    id: Optional[int]
+class UserPasswordReset(BaseModel):
+    password: Optional[str]
+    confirm_password: Optional[str]
