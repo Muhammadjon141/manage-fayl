@@ -16,3 +16,8 @@ class UserLogin(BaseModel):
 class UserPasswordReset(BaseModel):
     password: Optional[str]
     confirm_password: Optional[str]
+
+class UserPostCreateSchema(BaseModel):
+    image_path: Optional[str]
+    caption: Optional[str]
+    review: Optional[int]

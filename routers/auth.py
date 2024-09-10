@@ -1,7 +1,7 @@
 import datetime
 from fastapi import APIRouter, HTTPException, status, Depends
 from models import User, Post, Likes
-from schemas import UserRegister, UserLogin, UserPasswordReset
+from schemas import UserRegister, UserLogin, UserPasswordReset, UserPostCreateSchema
 from database import ENGINE, Session
 from werkzeug.security import generate_password_hash, check_password_hash
 from fastapi.encoders import jsonable_encoder
@@ -62,6 +62,7 @@ async def register_user(user: UserRegister, Authorize: AuthJWT = Depends()):
         email=user.email,
         password=generate_password_hash(user.password)
     )
+    session.query(User)
     session.add(new_user)
     session.commit()
     access_lifetime = datetime.timedelta(minutes=10)
@@ -86,8 +87,7 @@ async def get_users(Authenticate: AuthJWT = Depends()):
         Authenticate.jwt_required()
     except:
         return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token invalid")
-    
-    user = session.query(User).filter(User.username == Authenticate.get_jwt_subject)    
+    user = session.query(User).filter(User.username == Authenticate.get_jwt_subject()).first()
     if user is not None:
         users = session.query(User).all()
         return jsonable_encoder(users)
@@ -117,3 +117,65 @@ async def refresh_token(Authorize: AuthJWT = Depends()):
 
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    
+@router.get("/{username}")
+async def user_profil(username: str, authenticate: AuthJWT = Depends()):
+    try:
+        authenticate.jwt_required()
+    except:
+        return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token invalid")
+    try:
+        user = session.query(User).filter(User.username == username).first()
+    except:
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    
+    if user is not None:
+        posts_user = session.query(Post).filter(Post.user_id == user.id).all()
+        if posts_user is not None:
+            posts = {
+            "status": 200,
+            "message": f"{user.username}ning postlari",
+            "posts": [
+                {
+                    "image": post_user.image_path,
+                    "caption": post_user.caption,
+                    "review": post_user.review
+                }
+                for post_user in posts_user
+                ]
+            
+            }
+            for post_user in posts_user:
+                post_user.review += 1
+            session.add(post_user)
+            session.commit()
+            return jsonable_encoder(posts)
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="posts not found")
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+
+@router.post("/post/create")
+async def post_create(post: UserPostCreateSchema, authenticate: AuthJWT = Depends()):
+    try:
+        authenticate.jwt_required()
+    except:
+        return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token invalid")
+    
+    user_post = session.query(User).filter(User.username == authenticate.get_jwt_subject()).first()
+    
+    if user_post is not None:
+        new_post = Post(
+        user_id = user_post.id,
+        image_path = post.image_path,
+        caption = post.caption,
+        review = post.review
+        )
+        posts = {
+            "user":200,
+            "message":f"{user_post.username}ning yaratgan postingiz",
+            "posts":post
+        }
+        post = session.query(Post)
+        session.add(new_post)
+        session.commit()
+        return jsonable_encoder(posts)
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")

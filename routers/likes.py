@@ -19,15 +19,15 @@ async def user_likes(authenticate: AuthJWT = Depends()):
     except:
         return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token invalid")
     
-    user = session.query(User).filter(User.username == authenticate.get_jwt_subject).first()
-    print("dddddddddddddddddddddddddddd", user)
+    user = session.query(User).filter(User.username == authenticate.get_jwt_subject()).first()
     if user is not None:
-        print("dddddddddddddddddddddddddddd", user)
         like_posts = session.query(Likes).filter(Likes.user_id == user.id).all()
-        posts = {
+        posts = [{
             "status": 200,
             "message":"like bosgan postlaringiz",
-            "posts": {like_posts}
-        }
+            "posts": {like_post}
+            }
+                 for like_post in like_posts
+                 ]
         return jsonable_encoder(posts)
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
