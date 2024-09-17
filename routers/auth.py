@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from fastapi.encoders import jsonable_encoder
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy import or_
-
+from helpers import Get_post
 
 session = Session(bind=ENGINE)
 
@@ -130,6 +130,48 @@ async def user_profil(username: str, authenticate: AuthJWT = Depends()):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
     
     if user is not None:
+        posts_user = session.query(Post).filter(Post.user == user).all()
+        if posts_user is not None:
+            posts = {
+            "status": 200,
+            "message": f"{user.username}ning postlari",
+            "posts": [
+                {
+                    "id":post_user.id,
+                    "image": post_user.image_path,
+                    "caption": post_user.caption,
+                    "review": post_user.review
+                }
+                for post_user in posts_user
+                ]
+            }
+            for post_user in posts_user:
+                post_user.review += 1
+                session.add(post_user)
+                session.commit()
+            return jsonable_encoder(posts)
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="posts not found")
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+
+@router.get("/p/{id}")
+async def post_profil(id: str, authenticate: AuthJWT = Depends()):
+    try:
+        authenticate.jwt_required()
+    except:
+        return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token invalid")
+    try:
+        user = session.query(User).filter(User.username == authenticate.get_jwt_subject()).first()
+        all_posts = session.query(Post).all()
+    except:
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    for all_post in all_posts:
+        post = Get_post(all_post.id)
+        first_part = post.get_first_part() 
+        print("fffffffffffffffffffffffffffffffffffffffffffffffffffff", first_part)
+        if str(id[3:]) == first_part:
+            print("dddddddddddddddddddddd", post.get_from_id())
+
+    if user is not None:
         posts_user = session.query(Post).filter(Post.user_id == user.id).all()
         if posts_user is not None:
             posts = {
@@ -143,7 +185,6 @@ async def user_profil(username: str, authenticate: AuthJWT = Depends()):
                 }
                 for post_user in posts_user
                 ]
-            
             }
             for post_user in posts_user:
                 post_user.review += 1
