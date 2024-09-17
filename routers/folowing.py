@@ -1,4 +1,3 @@
-from docutils.nodes import status
 from fastapi import APIRouter
 from models import Follow
 from database import Session, ENGINE
@@ -21,7 +20,7 @@ async def all_follows():
     return paginate(follows)
 
 
-add_pagination(router_follow)
+add_pagination(router)
 
 
 @router.post("/to_follow")
